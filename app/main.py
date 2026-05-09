@@ -1,4 +1,6 @@
-from flask import Flask
+import os
+
+from flask import Flask, send_from_directory, abort
 from flask_restx import Api
 
 from app import routes
@@ -6,6 +8,19 @@ from app.utils import arl_update
 
 arl_app = Flask(__name__)
 arl_app.config['BUNDLE_ERRORS'] = True
+
+_frontend_dir = os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), 'docker', 'frontend')
+
+
+@arl_app.route('/', defaults={'path': ''})
+@arl_app.route('/<path:path>')
+def serve_frontend(path):
+    if not os.path.isdir(_frontend_dir):
+        abort(503)
+    if path and os.path.isfile(os.path.join(_frontend_dir, path)):
+        return send_from_directory(_frontend_dir, path)
+    return send_from_directory(_frontend_dir, 'index.html')
 
 authorizations = {
     "ApiKeyAuth": {

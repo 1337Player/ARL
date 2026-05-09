@@ -1,71 +1,51 @@
 #!/bin/bash
 
+ARL_SERVICES=("arl-web" "arl-worker" "arl-worker-github" "arl-scheduler" "nginx")
+INFRA_SERVICES=("mongod" "redis")
+
+ALL_SERVICES=("${INFRA_SERVICES[@]}" "${ARL_SERVICES[@]}")
+
 function start() {
-    systemctl start mongod
-    systemctl start rabbitmq-server
-    systemctl start arl-web
-    systemctl start arl-worker
-    systemctl start arl-worker-github
-    systemctl start arl-scheduler
-    systemctl start nginx
+    for svc in "${ALL_SERVICES[@]}"; do
+        systemctl start "$svc"
+    done
 }
 
 function stop() {
-    systemctl stop arl-web
-    systemctl stop arl-worker
-    systemctl stop arl-worker-github
-    systemctl stop arl-scheduler
-    systemctl stop nginx
-    systemctl stop mongod
-    systemctl stop rabbitmq-server
+    for svc in "${ARL_SERVICES[@]}"; do
+        systemctl stop "$svc"
+    done
+    for svc in "${INFRA_SERVICES[@]}"; do
+        systemctl stop "$svc"
+    done
 }
 
-
 function status() {
-    systemctl status arl-web
-    systemctl status arl-worker
-    systemctl status arl-worker-github
-    systemctl status arl-scheduler
-    systemctl status nginx
-    systemctl status mongod
-    systemctl status rabbitmq-server
+    for svc in "${ARL_SERVICES[@]}"; do
+        systemctl status "$svc"
+    done
+    for svc in "${INFRA_SERVICES[@]}"; do
+        systemctl status "$svc"
+    done
 }
 
 function disable() {
-    systemctl disable mongod
-    systemctl disable rabbitmq-server
-    systemctl disable arl-web
-    systemctl disable arl-worker
-    systemctl disable arl-worker-github
-    systemctl disable arl-scheduler
-    systemctl disable nginx
+    for svc in "${ALL_SERVICES[@]}"; do
+        systemctl disable "$svc"
+    done
 }
 
 function enable() {
-    systemctl enable mongod
-    systemctl enable rabbitmq-server
-    systemctl enable arl-web
-    systemctl enable arl-worker
-    systemctl enable arl-worker-github
-    systemctl enable arl-scheduler
-    systemctl enable nginx
+    for svc in "${ALL_SERVICES[@]}"; do
+        systemctl enable "$svc"
+    done
 }
 
 function showLog() {
-    echo "------ nginx server log ------"
-    journalctl -n 15 --no-pager -u nginx
-    echo "------ mongod server log ------"
-    journalctl -n 15 --no-pager -u mongod
-    echo "------ rabbitmq-server server log ------"
-    journalctl -n 15 --no-pager -u rabbitmq-server
-    echo "------ arl-scheduler server log ------"
-    journalctl -n 15 --no-pager -u arl-scheduler
-    echo "------ arl-web server log ------"
-    journalctl -n 15 --no-pager -u arl-web
-    echo "------ arl-worker server log ------"
-    journalctl -n 15 --no-pager -u arl-worker
-    echo "------ arl-worker github server log ------"
-    journalctl -n 15 --no-pager -u arl-worker-github
+    for svc in "${ALL_SERVICES[@]}"; do
+        echo "------ ${svc} server log ------"
+        journalctl -n 15 --no-pager -u "$svc"
+    done
 }
 
 function help() {

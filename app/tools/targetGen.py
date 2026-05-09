@@ -1,4 +1,4 @@
-#!/usr/bin/python3.6
+#!/usr/bin/env python3
 
 from urllib.parse import urlparse
 import sys
@@ -36,7 +36,7 @@ def normal_url(url):
 
 
 def load_file(path):
-    with open(path, "r+") as f:
+    with open(path, "r", encoding="utf-8") as f:
         return f.readlines()
 
 

@@ -5,36 +5,38 @@ echo "cd /opt/"
 mkdir -p /opt/
 cd /opt/
 
-tee /etc/yum.repos.d/mongodb-org-4.0.repo <<"EOF"
-[mongodb-org-4.0]
+# 注意：MongoDB 7.0 需要 RHEL 8+ / Debian 11+ / Ubuntu 20.04+ 系统
+# CentOS 7 已 EOL，请使用 Rocky Linux 9 或 Ubuntu 22.04+
+tee /etc/yum.repos.d/mongodb-org-7.0.repo <<"EOF"
+[mongodb-org-7.0]
 name=MongoDB Repository
-baseurl=https://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/4.0/x86_64/
+baseurl=https://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/7.0/x86_64/
 gpgcheck=1
 enabled=1
-gpgkey=https://www.mongodb.org/static/pgp/server-4.0.asc
+gpgkey=https://www.mongodb.org/static/pgp/server-7.0.asc
 EOF
 
 echo "install dependencies ..."
 yum install epel-release -y
-yum install python36 mongodb-org-server mongodb-org-shell rabbitmq-server python36-devel gcc-c++ git \
- nginx  fontconfig wqy-microhei-fonts unzip wget -y
+yum install python3.11 mongodb-org-server mongodb-org-shell redis python3.11-devel gcc-c++ git \
+ nginx fontconfig wqy-microhei-fonts unzip wget -y
 
-if [ ! -f /usr/bin/python3.6 ]; then
-  echo "link python3.6"
-  ln -s /usr/bin/python36 /usr/bin/python3.6
+if [ ! -f /usr/bin/python3 ]; then
+  echo "link python3"
+  ln -s /usr/bin/python3.11 /usr/bin/python3
 fi
 
-if [ ! -f /usr/local/bin/pip3.6 ]; then
-  echo "install  pip3.6"
-  python3.6 -m ensurepip --default-pip
-  python3.6 -m pip install --upgrade pip
-  pip3.6 --version
+if [ ! -f /usr/local/bin/pip3 ]; then
+  echo "install pip3"
+  python3 -m ensurepip --default-pip
+  python3 -m pip install --upgrade pip
+  pip3 --version
 fi
 
 if ! command -v nmap &> /dev/null
 then
-    echo "install nmap-7.93-1 ..."
-    rpm -vhU https://nmap.org/dist/nmap-7.93-1.x86_64.rpm
+    echo "install nmap-7.94-1 ..."
+    rpm -vhU https://nmap.org/dist/nmap-7.94-1.x86_64.rpm
 fi
 
 
@@ -42,7 +44,7 @@ if ! command -v nuclei &> /dev/null
 then
   echo "install nuclei_3.2.4 ..."
   wget https://github.com/projectdiscovery/nuclei/releases/download/v3.2.4/nuclei_3.2.4_linux_amd64.zip
-  unzip nuclei_3.2.4_linux_amd64.zip && mv nuclei /usr/bin/ && rm -f nuclei_3.2.4_linux_amd64.zip
+  unzip -o nuclei_3.2.4_linux_amd64.zip && mv nuclei /usr/bin/ && rm -f nuclei_3.2.4_linux_amd64.zip
   nuclei -ut
 fi
 
@@ -59,24 +61,24 @@ fi
 echo "start services ..."
 systemctl enable mongod
 systemctl start mongod
-systemctl enable rabbitmq-server
-systemctl start rabbitmq-server
+systemctl enable redis
+systemctl start redis
 
 
 if [ ! -d ARL ]; then
   echo "git clone ARL proj"
-  git clone https://github.com/C3ting/ARL
+  git clone --depth 1 https://github.com/C3ting/ARL
 fi
 
 if [ ! -d "ARL-NPoC" ]; then
   echo "git clone ARL-NPoC proj"
-  git clone https://github.com/1c3z/ARL-NPoC
+  git clone --depth 1 https://github.com/1c3z/ARL-NPoC
 fi
 
 cd ARL-NPoC
 echo "install poc requirements ..."
-pip3.6 install -r requirements.txt
-pip3.6 install -e .
+pip3 install -r requirements.txt
+pip3 install -e .
 cd ../
 
 if [ ! -f /usr/local/bin/ncrack ]; then
@@ -104,19 +106,14 @@ fi
 
 cd ARL
 
-if [ ! -f rabbitmq_user ]; then
-  echo "add rabbitmq user"
-  rabbitmqctl add_user arl arlpassword
-  rabbitmqctl add_vhost arlv2host
-  rabbitmqctl set_user_tags arl arltag
-  rabbitmqctl set_permissions -p arlv2host arl ".*" ".*" ".*"
+if [ ! -f arl_user_initialized ]; then
   echo "init arl user"
-  mongo 127.0.0.1:27017/arl docker/mongo-init.js
-  touch rabbitmq_user
+  mongosh docker/mongo-init.js
+  touch arl_user_initialized
 fi
 
 echo "install arl requirements ..."
-pip3.6 install -r requirements.txt
+pip3 install -r requirements.txt
 if [ ! -f app/config.yaml ]; then
   echo "create config.yaml"
   cp app/config.yaml.example  app/config.yaml
@@ -136,7 +133,7 @@ fi
 
 if [ ! -f /etc/ssl/certs/dhparam.pem ]; then
   echo "download dhparam.pem"
-  curl https://ssl-config.mozilla.org/ffdhe2048.txt > /etc/ssl/certs/dhparam.pem
+  curl -f https://ssl-config.mozilla.org/ffdhe2048.txt > /etc/ssl/certs/dhparam.pem
 fi
 
 
@@ -180,10 +177,9 @@ systemctl start arl-scheduler
 systemctl enable nginx
 systemctl start nginx
 
-systemctl status arl-web
-systemctl status arl-worker
-systemctl status arl-worker-github
-systemctl status arl-scheduler
+systemctl status arl-web || true
+systemctl status arl-worker || true
+systemctl status arl-worker-github || true
+systemctl status arl-scheduler || true
 
 echo "install done"
-

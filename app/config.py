@@ -6,14 +6,13 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config(object):
-    CELERY_BROKER_URL = "amqp://arl:arlpassword@localhost:5672/arlv2host"
+    CELERY_BROKER_URL = "redis://localhost:6379/0"
 
-    MONGO_DB = 'ARLV2'
-    MONGO_URL = 'mongodb://127.0.0.1:27017/'
+    MONGO_DB = 'arl'
+    MONGO_URL = 'mongodb://admin:admin@127.0.0.1:27017/'
 
     TMP_PATH = os.path.join(basedir, 'tmp')
-    if not os.path.exists(TMP_PATH):
-        os.mkdir(TMP_PATH)
+    os.makedirs(TMP_PATH, exist_ok=True)
     MASSDNS_BIN = os.path.join(basedir, 'tools/massdns')
     SCREENSHOT_JS = os.path.join(basedir, 'tools/screenshot.js')
     SCREENSHOT_DIR = os.path.join(basedir, 'tmp_screenshot')
@@ -53,7 +52,6 @@ class Config(object):
     AUTH = False
     API_KEY = ""
 
-    # BLACK_IPS = ["127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "0.0.0.0/8"]
     BLACK_IPS = ["127.0.0.0/8", "0.0.0.0/8"]
 
     GEOIP_ASN = ""
@@ -147,15 +145,11 @@ try:
 
     # *** 禁止域名配置 ***
     forbidden_domains = y["ARL"].get("FORBIDDEN_DOMAINS")
-    if forbidden_domains is None:
-        pass
-    else:
-        Config.FORBIDDEN_DOMAINS = []
+    if forbidden_domains is not None:
         if not isinstance(forbidden_domains, list):
             print("arl.forbidden_domains is not list")
             sys.exit(-1)
-        elif forbidden_domains:
-            Config.FORBIDDEN_DOMAINS = forbidden_domains
+        Config.FORBIDDEN_DOMAINS = forbidden_domains
 
     # *** 钉钉配置 ***
     if y.get("DINGDING"):
@@ -190,14 +184,12 @@ try:
     # *** 域名爆破并发数 ***
     domain_concurrent = y["ARL"].get("DOMAIN_BRUTE_CONCURRENT")
     if domain_concurrent:
-        int(domain_concurrent)
-        Config.DOMAIN_BRUTE_CONCURRENT = domain_concurrent
+        Config.DOMAIN_BRUTE_CONCURRENT = int(domain_concurrent)
 
     # *** 组合生成的域名爆破并发数 ***
     alt_dns_concurrent = y["ARL"].get("ALT_DNS_CONCURRENT")
     if alt_dns_concurrent:
-        int(alt_dns_concurrent)
-        Config.ALT_DNS_CONCURRENT = alt_dns_concurrent
+        Config.ALT_DNS_CONCURRENT = int(alt_dns_concurrent)
 
     # *** 代理配置 ***
     if y.get("PROXY"):

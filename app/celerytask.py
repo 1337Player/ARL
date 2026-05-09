@@ -14,14 +14,15 @@ celery = Celery('task', broker=Config.CELERY_BROKER_URL)
 celery.conf.update(
     task_acks_late=False,
     worker_prefetch_multiplier=1,
-    broker_transport_options={"max_retries": 3, "interval_start": 0, "interval_step": 0.2, "interval_max": 0.5},
+    broker_transport_options={
+        "visibility_timeout": 3600,
+    },
 )
 platforms.C_FORCE_ROOT = True
 
 
 @celery.task(queue=CeleryRoutingKey.ASSET_TASK)
 def arl_task(options):
-    # 这里不检验 celery_action， 调用的时候区分
     run_task(options)
 
 
@@ -85,7 +86,6 @@ def run_task(options):
 
 @celery.task(queue=CeleryRoutingKey.GITHUB_TASK)
 def arl_github(options):
-    # 这里不检验 celery_action， 调用的时候区分
     run_task(options)
 
 

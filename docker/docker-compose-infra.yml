@@ -1,0 +1,35 @@
+version: '3'
+
+volumes:
+  arl_mongo_data:
+  arl_redis:
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: arl_mongodb
+    restart: always
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - arl_mongo_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    environment:
+      - MONGO_INITDB_DATABASE=arl
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+
+  redis:
+    image: redis:7-alpine
+    container_name: arl_redis
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - arl_redis:/data
+    command: redis-server --appendonly yes
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1M"
+        max-file: "10"

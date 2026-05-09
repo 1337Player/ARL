@@ -1,11 +1,11 @@
 echo "install dependencies ..."
 yum install epel-release -y
-yum install python36 git htop vim yum-utils -y
+yum install python3.11 git htop vim yum-utils -y
 
-if [ ! -f /usr/local/bin/pip3.6 ]; then
-  echo "install  pip3.6"
-  python3.6 -m ensurepip --default-pip
-  pip3.6 install --upgrade pip
+if [ ! -f /usr/local/bin/pip3 ]; then
+  echo "install pip3"
+  python3.11 -m ensurepip --default-pip
+  pip3 install --upgrade pip
 fi
 
 echo "remove docker ..."

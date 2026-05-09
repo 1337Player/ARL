@@ -1,12 +1,13 @@
 #coding: utf-8
 
+import io
+
 from flask import  make_response
 from flask_restx import Resource, Namespace
 from openpyxl import Workbook
 from bson import ObjectId
 import re
 from collections import Counter
-from openpyxl.writer.excel import save_virtual_workbook
 from openpyxl.styles import Font, Color
 from app.utils import get_logger, auth
 from app import utils
@@ -383,7 +384,10 @@ class SaveTask(object):
 
         self.build_statist()
 
-        return save_virtual_workbook(self.wb)
+        buffer = io.BytesIO()
+        self.wb.save(buffer)
+        buffer.seek(0)
+        return buffer.read()
 
 
 def export_arl(task_id):

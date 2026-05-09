@@ -30,7 +30,7 @@ def not_in_black_ips(target):
     from . import get_logger
     logger = get_logger()
     try:
-        for ip in Config.BLACK_IPS:
+        for ip in (Config.BLACK_IPS or []):
             if "-" in target:
                 target = target.split("-")[0]
 

@@ -14,11 +14,25 @@ base_query_fields = {
     'order': fields.String(description="排序字段", example='_id'),
 }
 
-# 只能用等号进行mongo查询的字段
 EQUAL_FIELDS = ["task_id", "task_tag", "ip_type", "scope_id", "type"]
 
 
 class ARLResource(Resource):
+    SPECIAL_KEYS = ["_id", "save_date", "update_date"]
+
+    TYPE_MAP_FIELD_NAME = {
+        "site": "site",
+        "domain": "domain",
+        "ip": "ip",
+        "asset_site": "site",
+        "asset_domain": "domain",
+        "asset_ip": "ip",
+        "asset_wih": "content",
+        "url": "url",
+        "cip": "cidr_ip",
+        "wih": "content",
+    }
+
     def get_parser(self, model, location='json'):
         parser = reqparse.RequestParser(bundle_errors=True)
         for name in model:
@@ -110,16 +124,11 @@ class ARLResource(Resource):
 
     def build_return_items(self, data):
         items = []
-
-        special_keys = ["_id", "save_date", "update_date"]
-
         for item in data:
-            for key in item:
-                if key in special_keys:
+            for key in self.SPECIAL_KEYS:
+                if key in item:
                     item[key] = str(item[key])
-
             items.append(item)
-
         return items
 
     def build_data(self, args=None, collection=None):
@@ -130,14 +139,14 @@ class ARLResource(Resource):
         orderby_list = default_field.get('order', [("_id", -1)])
         query = self.build_db_query(args)
         result = conn(collection).find(query).sort(orderby_list).skip(size * (page - 1)).limit(size)
-        count = conn(collection).count(query)
+        count = conn(collection).count_documents(query)
         items = self.build_return_items(result)
 
-        special_keys = ["_id", "save_date", "update_date"]
-        for key in query:
-            if key in special_keys:
+        for key in self.SPECIAL_KEYS:
+            if key in query:
                 query[key] = str(query[key])
 
+        for key in query:
             raw_value = query[key]
             if isinstance(raw_value, dict):
                 if "$not" in raw_value:
@@ -153,10 +162,6 @@ class ARLResource(Resource):
             "code": 200
         }
         return data
-
-    '''
-    取默认字段的值，并且删除
-    '''
 
     def get_default_field(self, args):
         default_field_map = {
@@ -195,22 +200,10 @@ class ARLResource(Resource):
         return ret
 
     def send_export_file(self, args, _type):
-        _type_map_field_name = {
-            "site": "site",
-            "domain": "domain",
-            "ip": "ip",
-            "asset_site": "site",
-            "asset_domain": "domain",
-            "asset_ip": "ip",
-            "asset_wih": "content",
-            "url": "url",
-            "cip": "cidr_ip",
-            "wih": "content",
-        }
         data = self.build_data(args=args, collection=_type)["items"]
         items_set = set()
         for item in data:
-            filed_name = _type_map_field_name.get(_type, "")
+            filed_name = self.TYPE_MAP_FIELD_NAME.get(_type, "")
             if filed_name and filed_name in item:
                 if filed_name == "ip":
                     curr_ip = item[filed_name]
@@ -221,7 +214,6 @@ class ARLResource(Resource):
 
         return self.send_file(items_set, _type)
 
-    # 表示从 给定集合中 导出相应的字段来
     def send_export_file_attr(self, args, collection, field):
         data = self.build_data(args=args, collection=collection)["items"]
         items_set = set()
@@ -236,16 +228,8 @@ class ARLResource(Resource):
         return self.send_file(items_set, f"{collection}_{field}")
 
     def send_batch_export_file(self, task_id_list, _type):
-        _type_map_field_name = {
-            "site": "site",
-            "domain": "domain",
-            "ip": "ip",
-            "url": "url",
-            "cip": "cidr_ip",
-            "wih": "content",
-        }
         items_set = set()
-        filed_name = _type_map_field_name.get(_type, "")
+        filed_name = self.TYPE_MAP_FIELD_NAME.get(_type, "")
 
         for task_id in task_id_list:
             if not filed_name:
@@ -259,15 +243,8 @@ class ARLResource(Resource):
         return self.send_file(items_set, _type)
 
     def send_scope_batch_export_file(self, scope_id_list, _type):
-        _type_map_field_name = {
-            "asset_site": "site",
-            "asset_domain": "domain",
-            "asset_ip": "ip",
-            "asset_wih": "content"
-        }
-
         items_set = set()
-        filed_name = _type_map_field_name.get(_type, "")
+        filed_name = self.TYPE_MAP_FIELD_NAME.get(_type, "")
 
         for scope_id in scope_id_list:
             if not filed_name:
